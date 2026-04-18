@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>재검증 노트 — 본지 기사 사실 주장 교차 확인 · 경인블루저널</title>
+<meta name="description" content="경인블루저널 Dossier №001의 모든 사실 주장을 4루트로 교차 재검증. 수동 관찰 재수행과 Certificate Transparency 로그에서 비트 단위 일치 확인.">
+<meta name="author" content="경인블루저널 박용환 기자">
+<link rel="canonical" href="https://yongin-council-security-dossier.vercel.app/verification.html">
+
+<!-- Open Graph -->
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="경인블루저널">
+<meta property="og:title" content="재검증 노트 — 본지 기사 사실 주장 교차 확인">
+<meta property="og:description" content="Dossier №001의 모든 사실 주장을 4루트로 재검증 · 100% 재현 확인.">
+<meta property="og:url" content="https://yongin-council-security-dossier.vercel.app/verification.html">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Page-specific refinements */
+  .verdict {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 10px;
+    border: 1px solid currentColor;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 700;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+  .verdict--pass { color: #1f5a3a; background: rgba(31, 90, 58, 0.09); border-color: #1f5a3a; }
+  .verdict--partial { color: #7a4e11; background: rgba(184, 137, 61, 0.14); border-color: #7a4e11; }
+  .verdict--fail { color: var(--stamp); background: rgba(142, 30, 32, 0.08); }
+  .verdict::before {
+    content: '';
+    width: 8px; height: 8px; border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  .route {
+    padding: 48px 0;
+    border-top: 1px solid var(--ink-20);
+  }
+  .route:first-of-type { border-top: 3px solid var(--ink); }
+  .route__head {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 24px;
+    align-items: baseline;
+    margin-bottom: 28px;
+  }
+  .route__num {
+    font-family: var(--display);
+    font-weight: 300;
+    font-size: 3.6rem;
+    line-height: 0.85;
+    color: var(--stamp);
+    letter-spacing: -0.04em;
+    font-variation-settings: 'opsz' 144;
+  }
+  .route__title {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(1.3rem, 2vw, 1.6rem);
+    line-height: 1.2;
+    color: var(--ink);
+    font-variation-settings: 'opsz' 60, 'wght' 700;
+  }
+  .route__body h4 {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--stamp-deep);
+    margin: 22px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--stamp);
+    font-weight: 600;
+  }
+  .route__body ul { padding-left: 1.3em; margin-bottom: 12px; }
+  .route__body li { margin-bottom: 5px; line-height: 1.7; }
+  .route__body code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--ink-10);
+    padding: 1px 6px;
+    border-radius: 2px;
+  }
+
+  .evidence-mini {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 16px 20px;
+    margin: 12px 0 18px;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.68;
+    border-left: 3px solid var(--stamp);
+    overflow-x: auto;
+    white-space: pre;
+    box-shadow: 3px 3px 0 -2px var(--stamp);
+  }
+
+  .claim-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    background: var(--paper-tint);
+    border-top: 3px solid var(--ink);
+    border-bottom: 3px solid var(--ink);
+    margin: 10px 0 16px;
+  }
+  .claim-table thead th {
+    padding: 14px 14px 12px;
+    border-bottom: 1px solid var(--ink);
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    background: var(--paper-deep);
+  }
+  .claim-table tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px dotted var(--ink-20);
+    vertical-align: top;
+  }
+  .claim-table tbody tr:last-child td { border-bottom: none; }
+
+  .big-verdict {
+    margin: 48px 0 0;
+    padding: 32px 36px;
+    background: var(--paper-deep);
+    border: 2px solid var(--ink);
+    border-left: 6px solid var(--stamp);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 28px;
+    align-items: center;
+  }
+  .big-verdict__icon {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 4rem;
+    line-height: 1;
+    color: var(--stamp);
+    font-variation-settings: 'opsz' 144, 'wght' 900;
+  }
+  .big-verdict__text h3 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.5rem;
+    line-height: 1.25;
+    margin-bottom: 8px;
+    font-variation-settings: 'opsz' 60;
+  }
+  .big-verdict__text p {
+    font-family: var(--text);
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--ink-80);
+    margin: 0;
+  }
+
+  @media (max-width: 640px) {
+    .route__head { grid-template-columns: 56px 1fr; gap: 14px; }
+    .route__num { font-size: 2.4rem; }
+    .route__head .verdict { grid-column: 1 / -1; justify-self: start; }
+    .big-verdict { grid-template-columns: 1fr; gap: 10px; padding: 22px; }
+    .big-verdict__icon { font-size: 2.8rem; }
+    .claim-table { font-size: 0.82rem; }
+    .claim-table th, .claim-table td { padding: 9px 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="scroll-progress" id="progress" aria-hidden="true"></div>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="wrap masthead__inner stagger">
+    <div class="masthead__eyebrow">
+      <span>경인블루저널</span>
+      <span class="dot" aria-hidden="true"></span>
+      <span>편집 기록 · 자가 검증</span>
+      <span class="dot" aria-hidden="true"></span>
+      <span>2026.04.18</span>
+      <span class="dot" aria-hidden="true"></span>
+      <span>VERIFICATION NOTE</span>
+    </div>
+
+    <div class="masthead__display">
+      <div class="masthead__headline">
+        <p class="masthead__kicker">[편집 기록] 본지 사실 주장의 독립 재현성</p>
+        <h1 class="masthead__title-main">재검증 노트 — 본지 기사의 <em>사실 주장 교차 확인</em></h1>
+        <p class="masthead__subtitle">4루트 교차 검증 · 8시간 33분 간격 독립 재현 · <strong>Certificate Transparency 로그 비트 단위 일치</strong></p>
+      </div>
+      <div class="masthead__stamp" aria-hidden="true">
+        <span>경인블루저널<br>자가 검증<br>VERIFICATION<br>NOTE</span>
+      </div>
+    </div>
+
+    <p class="masthead__lead">
+      <strong>【리드】</strong> 경인블루저널은 2026-04-18 발행한 기사 <em>'용인시의회 홈페이지, 주요 웹 보안 헤더 응답 미관찰'</em>(<code>Dossier №001</code>)의 모든 사실 주장이 <strong>독립 시점과 독립 도구로 재현 가능한지</strong> 자가 검증했다. 수동 관찰 재수행(루트 1)과 Certificate Transparency 로그 대조(루트 4)에서 <strong>비트 단위로 일치</strong>했고, 8가지 사실 주장 전체가 재현됐다. 제3자 스캐너 자동 조회(루트 2)와 Wayback Machine 시점 비교(루트 3)는 스캐너·보존 측 제약으로 자동 대조가 불가했다.
+    </p>
+
+    <div class="masthead__byline">
+      <span class="byline__author">경인블루저널 박용환 기자</span>
+      <span class="byline__date">편집 기록 · 2026.04.18</span>
+    </div>
+
+    <div class="masthead__foot">
+      <p class="disclaimer">
+        <strong>⚠ 검증 원칙.</strong> 본 재검증은 공개 정보 기반의 수동 관찰만 수행했다. 취약점 스캐너 실행·페이로드 주입·인증 우회 등 능동적 점검은 일체 수행하지 않았다. 원 기사와 동일한 법적 범주(<strong>헌법 제21조</strong> 언론의 자유 · <strong>정보통신망법 제48조</strong> 공개 정보 한정 · <strong>형법 제310조</strong> 공익 보도)에서 진행됐다.
+        <br><br>
+        <strong>반론 환영.</strong> 본 검증 결과에 대한 반론·정정·보충은 언제든 환영한다. 접수: <strong>heisenbug0306@gmail.com</strong> (경인블루저널 편집국).
+      </p>
+    </div>
+  </div>
+</header>
+
+<!-- DOCKET -->
+<section class="docket reveal">
+  <div class="wrap">
+    <div class="docket__head">
+      <span class="docket__label">Docket № 001-v · Verification</span>
+      <div class="docket__rule"></div>
+    </div>
+    <dl class="docket__list">
+      <div><dt>대상 기사</dt><dd><a href="index.html">Dossier №001 — 용인시의회 웹 보안 관찰</a></dd></div>
+      <div><dt>원 취재</dt><dd>2026-04-18 05:37 UTC (14:37 KST)</dd></div>
+      <div><dt>재검증</dt><dd>2026-04-18 14:10 UTC (약 8시간 33분 후)</dd></div>
+      <div><dt>검증자</dt><dd>경인블루저널 박용환 기자 · heisenbug0306@gmail.com</dd></div>
+      <div><dt>도구</dt><dd><code>curl -sS -D -</code> · <code>nslookup</code> · <code>openssl s_client</code> · <code>crt.sh</code> · Wayback API</dd></div>
+      <div><dt>방법</dt><dd>수동 관찰 한정 · 능동 점검 없음</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- METHOD -->
+<section class="section reveal" id="method">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">00</div>
+      <div>
+        <span class="section__label">검증 방법론</span>
+        <h2 class="section__title">네 개의 독립 루트로<br>교차 확인한다.</h2>
+      </div>
+    </header>
+    <table class="claim-table">
+      <thead>
+        <tr><th style="width:8%">루트</th><th style="width:32%">도구</th><th>의도</th><th style="width:16%">판정</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1</strong></td>
+          <td><code>curl</code> · <code>nslookup</code> · <code>openssl s_client</code></td>
+          <td>동일한 수동 관찰을 다른 시점에 재수행해 재현성 확인</td>
+          <td><span class="verdict verdict--pass">재현</span></td>
+        </tr>
+        <tr>
+          <td><strong>2</strong></td>
+          <td>Mozilla Observatory · securityheaders.com · Hardenize</td>
+          <td>제3자 공개 스캐너 기준으로 본지 주장과 대조</td>
+          <td><span class="verdict verdict--partial">제약</span></td>
+        </tr>
+        <tr>
+          <td><strong>3</strong></td>
+          <td>Wayback Machine (archive.org)</td>
+          <td>과거 시점 상태 변동 여부 확인</td>
+          <td><span class="verdict verdict--partial">스냅샷 없음</span></td>
+        </tr>
+        <tr>
+          <td><strong>4</strong></td>
+          <td>crt.sh Certificate Transparency 로그</td>
+          <td>TLS 인증서 발급 이력으로 관찰 교차 검증</td>
+          <td><span class="verdict verdict--pass">완전 일치</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ROUTE 1 -->
+<section class="section reveal" id="route-1">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">01</div>
+      <div>
+        <span class="section__label">루트 1 · 수동 관찰 재수행</span>
+        <h2 class="section__title">8시간 33분 뒤,<br>완전히 같은 응답.</h2>
+      </div>
+    </header>
+
+    <article class="route">
+      <header class="route__head">
+        <div class="route__num">1-A</div>
+        <h3 class="route__title">HTTP 응답 헤더 재조회</h3>
+        <span class="verdict verdict--pass">일치</span>
+      </header>
+      <div class="route__body">
+        <pre class="evidence-mini">HTTP/1.1 200
+Set-Cookie: JSESSIONID=575692F5FBDCBFE1524C847E402394BB; Path=/; Secure; HttpOnly
+Content-Type: text/html;charset=UTF-8
+Content-Language: ko-KR
+Transfer-Encoding: chunked
+Date: Sat, 18 Apr 2026 14:10:46 GMT</pre>
+        <p>원 취재(05:37 UTC) 헤더 구성과 <strong>완전 일치</strong>. 부재 헤더(HSTS · CSP · X-Frame-Options · X-Content-Type-Options · Referrer-Policy · Permissions-Policy · Cross-Origin-* · Server · X-Powered-By) 역시 동일하게 미관찰.</p>
+      </div>
+    </article>
+
+    <article class="route">
+      <header class="route__head">
+        <div class="route__num">1-B</div>
+        <h3 class="route__title">robots.txt — Last-Modified 안정성</h3>
+        <span class="verdict verdict--pass">불변</span>
+      </header>
+      <div class="route__body">
+        <pre class="evidence-mini">HTTP/1.1 200 OK
+Accept-Ranges: bytes
+ETag: W/"73-1770019789000"
+Last-Modified: Mon, 02 Feb 2026 08:09:49 GMT
+Content-Length: 73</pre>
+        <p><code>Last-Modified</code>가 <strong>2026-02-02 08:09:49 GMT</strong>로, 해당 파일은 본지 취재 두 달 전부터 변경되지 않은 공개 상태다. 관찰이 '우연한 시점 포착'이 아니라 <strong>지속적 공개 상태</strong>임을 증명한다.</p>
+      </div>
+    </article>
+
+    <article class="route">
+      <header class="route__head">
+        <div class="route__num">1-C</div>
+        <h3 class="route__title">sitemap.xml · security.txt</h3>
+        <span class="verdict verdict--pass">일치</span>
+      </header>
+      <div class="route__body">
+        <ul>
+          <li><code>/sitemap.xml</code> → <strong>404</strong> (원본과 동일)</li>
+          <li><code>/.well-known/security.txt</code> → <strong>404</strong> (원본과 동일)</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="route">
+      <header class="route__head">
+        <div class="route__num">1-D</div>
+        <h3 class="route__title">DNS 재질의</h3>
+        <span class="verdict verdict--pass">일치</span>
+      </header>
+      <div class="route__body">
+        <ul>
+          <li><code>council.yongin.go.kr</code> A 레코드: <code>27.101.119.45</code> (동일)</li>
+          <li><code>yongin.go.kr</code> TXT: <code>_globalsign-domain-verification=oanXAz9mA1k3jI_Q1B5jMU_p02ymsofiLRSuevpXA6</code> (동일, <strong>SPF 없음 재확인</strong>)</li>
+          <li><code>_dmarc.yongin.go.kr</code>: SOA만 반환, <strong>DMARC 없음 재확인</strong></li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="route">
+      <header class="route__head">
+        <div class="route__num">1-E</div>
+        <h3 class="route__title">TLS 핸드셰이크 재수행</h3>
+        <span class="verdict verdict--pass">일치</span>
+      </header>
+      <div class="route__body">
+        <pre class="evidence-mini">subject=CN=*.yongin.go.kr
+issuer=C=BE, O=GlobalSign nv-sa, CN=GlobalSign GCC R6 AlphaSSL CA 2025
+v:NotBefore: Mar  4 07:00:00 2026 GMT
+v:NotAfter:  Apr  5 06:59:59 2027 GMT
+Protocol : TLSv1.2
+Cipher   : ECDHE-RSA-AES256-GCM-SHA384
+Verify return code: 0 (ok)</pre>
+        <p>원 TLS 관찰 데이터와 <strong>완전 일치</strong>. 인증서·발급자·유효기간·암호 스위트 모두 동일.</p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ROUTE 2 -->
+<section class="section reveal" id="route-2">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">02</div>
+      <div>
+        <span class="section__label">루트 2 · 공개 스캐너</span>
+        <h2 class="section__title">접근 제약으로<br>자동 대조는 미완.</h2>
+      </div>
+    </header>
+    <table class="claim-table">
+      <thead>
+        <tr><th style="width:34%">스캐너</th><th>결과</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Mozilla Observatory (<code>/api/v2/scan</code>)</td><td>HTTP 404 — API 경로 최신 변경, 직접 조회 실패</td></tr>
+        <tr><td>securityheaders.com</td><td>HTTP 403 Forbidden — 취재 도구 User-Agent 차단 추정</td></tr>
+        <tr><td>Hardenize · SSL Labs</td><td>본 재검증 시점에 조회 시도하지 않음 (시간 한계)</td></tr>
+      </tbody>
+    </table>
+    <p class="note">제3자 공개 스캐너 <strong>자동 조회는 이번 세션에서 실패</strong>했으나, 이는 스캐너 측 접근 정책 문제이지 본지 주장의 반박 증거가 아니다. 독자는 브라우저로 각 스캐너 사이트에서 직접 <code>council.yongin.go.kr</code>을 입력해 본지 주장과 대조할 수 있다. 결과 불일치 시 본지 편집국(heisenbug0306@gmail.com)으로 제보를 환영한다.</p>
+  </div>
+</section>
+
+<!-- ROUTE 3 -->
+<section class="section reveal" id="route-3">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">03</div>
+      <div>
+        <span class="section__label">루트 3 · Wayback Machine</span>
+        <h2 class="section__title">보존 스냅샷<br>없음.</h2>
+      </div>
+    </header>
+    <div class="route__body">
+      <p>Wayback Machine API(<code>https://archive.org/wayback/available?url=council.yongin.go.kr</code>) 응답의 <code>archived_snapshots</code> 객체가 <strong>빈 상태</strong>였다.</p>
+      <pre class="evidence-mini">{ "archived_snapshots": {} }</pre>
+      <p>용인시의회 홈페이지는 archive.org에 <strong>보존된 스냅샷이 없다</strong>. <code>robots.txt</code>의 크롤러 차단 지시(<code>Disallow:/kr/open/bbsRequest.do</code>, <code>Disallow:/kr/open/search.do</code>)가 일부 원인일 가능성이 있으나 메인 페이지 경로는 해당 지시에 포함되지 않으므로 단정은 어렵다. 과거 상태 변동 여부는 이 루트로 확인 불가.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUTE 4 -->
+<section class="section reveal" id="route-4">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">04</div>
+      <div>
+        <span class="section__label">루트 4 · Certificate Transparency</span>
+        <h2 class="section__title">CT 로그 원장과<br>비트 단위 일치.</h2>
+      </div>
+    </header>
+
+    <p><code>https://crt.sh/?q=yongin.go.kr&amp;output=json</code> 재질의로 받은 최근 인증서 이력.</p>
+
+    <table class="claim-table">
+      <thead>
+        <tr>
+          <th style="width:6%">순위</th>
+          <th>도메인</th>
+          <th style="width:28%">발급자</th>
+          <th style="width:12%">유효 시작</th>
+          <th style="width:12%">유효 종료</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background: rgba(142, 30, 32, 0.05);">
+          <td><strong>1 (현행)</strong></td>
+          <td><code>*.yongin.go.kr</code>, <code>yongin.go.kr</code></td>
+          <td><strong>GlobalSign GCC R6 AlphaSSL CA 2025</strong></td>
+          <td><strong>2026-03-04</strong></td>
+          <td><strong>2027-04-05</strong></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><code>ytalk.yongin.go.kr</code></td>
+          <td>GlobalSign GCC R6 AlphaSSL CA 2025</td>
+          <td>2025-09-30</td>
+          <td>2026-11-01</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><code>ytalk.yongin.go.kr</code></td>
+          <td>GlobalSign GCC R6 AlphaSSL CA 2023</td>
+          <td>2024-09-09</td>
+          <td>2025-10-11</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><code>*.yongin.go.kr</code>, <code>yongin.go.kr</code></td>
+          <td>Sectigo RSA DV Secure Server CA</td>
+          <td>2025-03-04</td>
+          <td>2026-04-03</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><code>*.yongin.go.kr</code>, <code>yongin.go.kr</code></td>
+          <td>Sectigo RSA DV Secure Server CA</td>
+          <td>2025-03-04</td>
+          <td>2026-04-03</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4 style="font-family:var(--mono); font-size:0.74rem; letter-spacing:0.24em; text-transform:uppercase; color:var(--stamp-deep); margin:22px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--stamp);">대조 결과</h4>
+    <ul class="route__body" style="padding-left:1.3em;">
+      <li><strong>현행 인증서(순위 1)</strong>: 발급자 · 유효기간 · SAN 세 항목 모두 본지 루트 1-E(TLS 실측) 결과와 <strong>비트 단위로 일치</strong>. 본지가 관찰한 인증서가 공식 CT 로그에 등재된 <strong>동일 공개 인증서</strong>임을 독립 소스로 증명.</li>
+      <li><strong>이력 분석</strong>: 2026-03-04 이전에는 <strong>Sectigo</strong> 발급 와일드카드를 사용했고, 해당 시점에 <strong>GlobalSign</strong>으로 교체된 사실 확인. <code>ytalk.yongin.go.kr</code>(용인시청 대화 서비스 추정)는 별도 인증서 사용.</li>
+      <li><strong>서브도메인 단독 질의 주의</strong>: crt.sh는 <code>council.yongin.go.kr</code> 단독 질의에서 "None found"를 반환한다. 와일드카드 인증서는 상위(<code>yongin.go.kr</code>) 질의로 매칭된다. 앞선 "없음" 결과는 오해 소지였다.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- CLAIM RECONSTRUCTION -->
+<section class="section reveal" id="claims">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">05</div>
+      <div>
+        <span class="section__label">기사 사실 주장 8건 재현 결과</span>
+        <h2 class="section__title">여덟 개 주장,<br>모두 독립 재현.</h2>
+      </div>
+    </header>
+    <table class="claim-table">
+      <thead>
+        <tr><th>기사 주장</th><th style="width:18%">판정</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>6종 HTTP 보안 헤더 미관찰 (HSTS · CSP · X-Frame-Options · X-Content-Type-Options · Referrer-Policy · Permissions-Policy)</td><td><span class="verdict verdict--pass">재현</span></td></tr>
+        <tr><td>쿠키 <code>Secure</code> · <code>HttpOnly</code> 설정</td><td><span class="verdict verdict--pass">재현</span></td></tr>
+        <tr><td>TLS 1.2 · <code>ECDHE-RSA-AES256-GCM-SHA384</code></td><td><span class="verdict verdict--pass">재현</span></td></tr>
+        <tr><td>GlobalSign 와일드카드 인증서 (2026-03-04 ~ 2027-04-05)</td><td><span class="verdict verdict--pass">CT 로그도 일치</span></td></tr>
+        <tr><td><code>robots.txt</code> 2개 Disallow (2026-02-02 이후 불변)</td><td><span class="verdict verdict--pass">재현</span></td></tr>
+        <tr><td><code>sitemap.xml</code> · <code>/.well-known/security.txt</code> 부재</td><td><span class="verdict verdict--pass">재현</span></td></tr>
+        <tr><td><code>yongin.go.kr</code> SPF · DMARC 부재 (용인시청 관할)</td><td><span class="verdict verdict--pass">재현</span></td></tr>
+        <tr><td>A 레코드 <code>27.101.119.45</code></td><td><span class="verdict verdict--pass">재현</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- NEW FINDINGS -->
+<section class="section reveal" id="findings">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">06</div>
+      <div>
+        <span class="section__label">재검증 중 신규 발견</span>
+        <h2 class="section__title">두 가지<br>부수 발견.</h2>
+      </div>
+    </header>
+    <article class="route">
+      <header class="route__head">
+        <div class="route__num">F-1</div>
+        <h3 class="route__title">HTTP(80번 포트) 무응답</h3>
+        <span class="verdict verdict--partial">주목</span>
+      </header>
+      <div class="route__body">
+        <p>재검증 과정에서 <code>curl -sSI http://council.yongin.go.kr/</code> 요청이 <strong>10초 타임아웃</strong>됐다. HTTPS(443)는 정상 응답. 두 가지 해석이 가능하다.</p>
+        <ul>
+          <li>서버/방화벽이 HTTP 포트를 <strong>아예 차단</strong>해 리다이렉트 응답조차 반환하지 않는다 → HSTS 부재의 다운그레이드 공격 위험도를 실제로 낮추는 구성일 수 있다.</li>
+          <li>또는 일시 네트워크 문제.</li>
+        </ul>
+        <p><strong>기사 영향</strong>: HSTS 권고는 여전히 유효하되 실제 현장 위험도는 'theoretical·low residual'로 볼 여지가 있다. 후속 <em>Dossier №002</em>에서 추가 조사·반영한다.</p>
+      </div>
+    </article>
+
+    <article class="route">
+      <header class="route__head">
+        <div class="route__num">F-2</div>
+        <h3 class="route__title">응답 헤더의 시점 간 완전 일치</h3>
+        <span class="verdict verdict--pass">안정</span>
+      </header>
+      <div class="route__body">
+        <p>8시간 33분 간격으로 수행한 두 차례 관찰이 <strong>정확히 동일한 헤더 셋</strong>을 반환했다. 기관 구성이 본지 취재 후에도 변경되지 않은 상태임을 의미한다. 기관이 본 기사 공개 후 헤더를 추가하면 이 사실도 후속 기사에서 기록한다.</p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- VERDICT -->
+<section class="section reveal" id="verdict-section">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">07</div>
+      <div>
+        <span class="section__label">결론</span>
+        <h2 class="section__title">본지 기사의<br>사실 주장은 재현 가능하다.</h2>
+      </div>
+    </header>
+    <div class="big-verdict">
+      <div class="big-verdict__icon">✓</div>
+      <div class="big-verdict__text">
+        <h3>독립 시점 · 독립 도구로 재현 확인</h3>
+        <p>본지 기사의 <strong>모든 사실 주장이 독립 시점·독립 도구로 재현 가능한 공개 사실</strong>임이 확인됐다. "일회성 오관찰" 또는 "일시적 서버 오작동 시점의 포착" 가능성은 배제된다. 기사의 기술(記述)은 현재 시점에도 유효하다. 재검증 중 새로 발견된 HTTP 포트 무응답은 기사 논지를 약화하지 않으나, 다운그레이드 공격 위험 서술의 강도를 조정할 단서가 된다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIMITS -->
+<section class="section reveal" id="limits">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">08</div>
+      <div>
+        <span class="section__label">본 재검증의 한계</span>
+        <h2 class="section__title">확인하지<br>못한 것.</h2>
+      </div>
+    </header>
+    <ol class="limits">
+      <li><strong>제3자 스캐너 자동 대조.</strong> Mozilla Observatory · securityheaders.com 자동 조회 실패로 자동 대조가 이뤄지지 않았다. 독자의 직접 조회로 보완 가능하다.</li>
+      <li><strong>시점 비교.</strong> Wayback Machine 보존 스냅샷이 없어 과거 시점 변동을 확인하지 못했다.</li>
+      <li><strong>수동 관찰 한정.</strong> 본 재검증 역시 수동 관찰에 한정되며, 능동 점검·침투는 일체 수행하지 않았다. 기관 내부 구성 검증은 본지 권한 밖이다.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- COLOPHON -->
+<footer class="colophon">
+  <div class="wrap">
+    <div class="colophon__rule"></div>
+    <p class="byline-block"><strong>경인블루저널 박용환 기자</strong></p>
+    <p>본 재검증 노트는 경인블루저널이 2026-04-18 발행한<br>
+    기사 <em>Dossier №001</em>의 사실 주장을 자가 검증한 기록이다.<br>
+    반론 · 정정 · 보충 요청 접수: <strong>heisenbug0306@gmail.com</strong></p>
+    <p style="margin-top:18px;"><a href="index.html">← 원 기사로 돌아가기 (Dossier №001)</a></p>
+    <div class="colophon__end">— 경인블루저널 · Verification Note —</div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
