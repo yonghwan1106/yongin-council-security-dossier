@@ -57,7 +57,7 @@
     </div>
 
     <p class="masthead__lead">
-      <strong>【리드】</strong> 용인시의회 홈페이지(<code>council.yongin.go.kr</code>)에서 브라우저 수준 심층 방어를 담당하는 핵심 HTTP 보안 헤더 다수가 응답에서 <strong>관찰되지 않았다</strong>. 본지가 2026-04-18 공개 정보만을 대상으로 수동 조사한 결과다. 전송 계층과 쿠키 기본 위생은 갖춰졌으나, <strong>HSTS·CSP·X-Frame-Options 등 6종 헤더</strong>가 외부 응답에서 관찰되지 않아 클릭재킹·다운그레이드·스크립트 주입 피해 확산 경로가 외부 관측상 차단되지 않은 상태로 남아 있다. 기관 내부 레이어에서의 구현 여부는 본 취재 범위 밖이며, 본지는 같은 날 기관에 반론 요청을 발송했다.
+      <strong>【리드】</strong> 용인시의회 홈페이지(<code>council.yongin.go.kr</code>)에서 브라우저 수준 심층 방어를 담당하는 핵심 HTTP 보안 헤더 다수가 응답에서 <strong>관찰되지 않았다</strong>. 본지가 2026-04-18 공개 정보만을 대상으로 수동 조사한 결과다. 전송 계층과 쿠키 기본 위생은 갖춰졌으나, <strong>HSTS·CSP·X-Frame-Options 등 6종 헤더</strong>가 외부 응답에서 관찰되지 않아 클릭재킹·다운그레이드·스크립트 주입 피해 확산 경로가 외부 관측상 차단되지 않은 상태로 남아 있다. 기관 내부 레이어에서의 구현 여부는 본 취재 범위 밖이며, 본지는 용인시의회·용인시청의 반론을 언제든 환영한다.
     </p>
 
     <div class="masthead__byline">
@@ -68,7 +68,7 @@
     <div class="masthead__foot">
       <p class="disclaimer">
         <strong>⚠ 취재 원칙.</strong> 본 기사는 공개 정보 기반의 <strong>수동 취재</strong>다. 취약점 스캐너 실행·페이로드 주입·인증 우회 등 능동적 점검은 수행하지 않았다. 따라서 "관찰되지 않음"은 <strong>외부 응답 레이어에 보이지 않는다</strong>는 뜻이며, 기관 내부 구성까지 단정하지 않는다.<br><br>
-        <strong>반론권 보장.</strong> 본지는 2026-04-18 14:00 KST 용인시의회 사무처 대표번호(031-6193-3967) 및 공식 이메일 경로로 취재 내용 확인 및 반론 요청을 <strong>발송</strong>했다. 보도 전 <strong>24시간 답변 기회</strong>를 제공했으며, 지정 시한까지 회신이 도착하지 않아 공익성을 고려해 선행 보도한다. 기관 답변 수신 시 본 지면에 <strong>72시간 내 전문 게재</strong>한다. 반론·정정 요청 접수: <strong>heisenbug0306@gmail.com</strong> (경인블루저널 편집국).
+        <strong>반론 환영.</strong> 본 기사에 대한 <strong>용인시의회(<code>council.yongin.go.kr</code>)와 용인시청(<code>yongin.go.kr</code>) 측의 반론 · 사실 확인 · 정정 요청은 언제든 환영</strong>한다. 두 기관은 행정적으로 독립된 의결기관·집행기관 관계이므로 각각의 입장을 구분해 본 지면에 반영한다. 수신 즉시 본 지면에 <strong>전문 게재</strong>한다. 접수: <strong>heisenbug0306@gmail.com</strong> (경인블루저널 편집국).
       </p>
     </div>
   </div>
@@ -103,7 +103,7 @@
     </div>
     <dl class="docket__list">
       <div><dt>Object</dt><dd><code>https://council.yongin.go.kr/</code></dd></div>
-      <div><dt>Observed</dt><dd>2026-04-18 05:37 UTC (14:37 KST) 관찰 · 2026-04-18 14:00 KST 반론 요청 발송</dd></div>
+      <div><dt>Observed</dt><dd>2026-04-18 05:37 UTC (14:37 KST) 관찰</dd></div>
       <div><dt>취재</dt><dd>경인블루저널 박용환 기자 · heisenbug0306@gmail.com</dd></div>
       <div><dt>Instruments</dt><dd>WebFetch · <code>curl -sSI</code> · <code>openssl s_client</code> · <code>nslookup</code> · CT 로그 조회</dd></div>
       <div><dt>근거 법</dt><dd>헌법 제21조(언론의 자유) · 정보통신망법 제48조 · 정보통신기반 보호법 · 형법 제310조(위법성 조각)</dd></div>
@@ -422,7 +422,7 @@ Policy: https://council.yongin.go.kr/security-policy</pre>
       <ol class="timeline__steps">
         <li><span class="timeline__step">01</span><div><strong>공익 보도.</strong> 공공기관 웹사이트의 보안 위생은 시민 알권리와 직결된 공공의 이익 사안이다.</div></li>
         <li><span class="timeline__step">02</span><div><strong>수동 취재.</strong> 본 기사는 공개 정보만을 조회하는 비침투적 취재에 한하며, 정보통신망법 제48조를 준수한다.</div></li>
-        <li><span class="timeline__step">03</span><div><strong>반론권 보장.</strong> 본지는 보도 전 기관에 <strong>최소 24시간 답변 기회</strong>를 제공하고, 접수한 반론·사실 확인 요청은 <strong>72시간 내 본 지면에 반영</strong>한다. 요청 접수처: <code>heisenbug0306@gmail.com</code>.</div></li>
+        <li><span class="timeline__step">03</span><div><strong>반론 환영.</strong> 본 기사에 대한 용인시의회·용인시청의 반론·사실 확인·정정 요청은 <strong>언제든 환영</strong>하며, 수신 즉시 본 지면에 <strong>전문 게재</strong>한다. 접수처: <code>heisenbug0306@gmail.com</code>.</div></li>
         <li><span class="timeline__step">04</span><div><strong>지속 모니터링.</strong> 개선 조치 여부를 <em>Dossier №002</em> 후속 기사로 추적 보도한다.</div></li>
       </ol>
     </aside>
