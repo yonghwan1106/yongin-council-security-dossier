@@ -1,0 +1,105 @@
+[제목]
+용인시의회 홈페이지, 주요 웹 보안 헤더 응답 미관찰
+
+[부제]
+HSTS · CSP · X-Frame-Options 등 6종 헤더 확인 안 돼 … 전송 계층·쿠키 기본 위생은 양호
+
+[리드]
+용인시의회 홈페이지(council.yongin.go.kr)에서 브라우저 수준 심층 방어를 담당하는 핵심 HTTP 보안 헤더 다수가 응답에 포함되지 않은 것으로 확인됐다. 본지가 2026년 4월 18일 공개 정보만을 대상으로 수동 취재한 결과다.
+
+
+[본문]
+
+◇ 무엇이 문제인가
+
+현대 웹 사이트는 서버가 보내는 응답에 '보안 헤더' 몇 줄을 넣어 이용자의 브라우저가 악성 페이지·중간자 공격·스크립트 주입 등을 차단하도록 신호를 보낸다. HSTS(Strict-Transport-Security)는 HTTPS 강제, CSP(Content-Security-Policy)는 스크립트 실행 범위 제한, X-Frame-Options는 클릭재킹 방어를 담당한다. 한국인터넷진흥원(KISA) 전자정부 웹사이트 보안강화 가이드, OWASP Secure Headers Project, Mozilla Web Security Guidelines 모두 이 헤더들을 '반드시 설정해야 할' 최소 위생으로 분류한다.
+
+
+◇ 본지 관찰 결과
+
+본지는 용인시의회 홈페이지 메인 페이지의 HTTPS 응답 헤더를 일반 브라우저와 동일한 수준으로 1회 조회했다. 침투 시험이 아니며 취약점 스캐너·페이로드 주입·인증 우회는 수행하지 않았다. 확인된 응답 원문은 다음과 같다.
+
+  HTTP/1.1 200
+  Set-Cookie: JSESSIONID=...; Path=/; Secure; HttpOnly
+  Content-Type: text/html;charset=UTF-8
+  Content-Language: ko-KR
+  Transfer-Encoding: chunked
+  Date: Sat, 18 Apr 2026 05:37:21 GMT
+
+응답에 포함돼야 할 6종 헤더 — Strict-Transport-Security · Content-Security-Policy · X-Frame-Options · X-Content-Type-Options · Referrer-Policy · Permissions-Policy — 가 외부 응답 레이어에서 관찰되지 않았다. 기관 내부 웹방화벽(WAF)이나 L7 프록시 계층에서 다르게 구현하고 있을 가능성은 배제하지 않는다.
+
+
+◇ 기본 위생은 양호
+
+전송 계층과 쿠키 보안의 기본은 갖춰져 있다. TLS 1.2로 협상됐고, 인증서는 글로벌사인(GlobalSign)이 2026년 3월 4일 발급해 2027년 4월 5일까지 유효하며, 세션 쿠키에는 Secure·HttpOnly 플래그가 적용돼 있었다. 서버 버전 지문도 노출되지 않았다.
+
+반면 쿠키 SameSite 속성은 확인되지 않았고, `/sitemap.xml`과 `/.well-known/security.txt`는 존재하지 않았다. 후자의 부재는 외부에서 우연히 취약점을 발견한 이용자가 기관 담당자를 찾기 어렵게 만든다.
+
+
+◇ 상위 도메인 이메일 스푸핑 방어 — 용인시청 관할 사안
+
+본지는 참고 자료로 용인시의회의 상위 도메인 `yongin.go.kr`에 대해서도 DNS 공개 질의를 했다. 이 도메인은 **용인시청**이 운영하는 것으로, 용인시의회(council.yongin.go.kr)와는 행정적으로 별개 기관이다. 질의 결과 SPF·DMARC 레코드가 관찰되지 않았다. KISA 「이메일 보안 강화 적용 안내서」는 공공기관 도메인에 대해 두 레코드 적용을 권고한다.
+
+위조 발신자가 `@yongin.go.kr` 형식의 피싱 메일을 '용인시의회 공지' 형태로 시민에게 보낼 경우 수신 서버가 자동으로 걸러 내지 못할 수 있다. 이는 **용인시청 정보통신과의 관할 사안**이며, 본지는 용인시청 측에도 별도 반론 요청과 개선 권고를 전달할 예정이다. 본 기사가 용인시의회의 책임으로 이 항목을 기술하지 않는 이유다.
+
+
+◇ 위험 등급 — 'medium' 6건, 'low' 2건
+
+본지는 OWASP Secure Headers Project 기준에 따라 HSTS·CSP·X-Frame-Options·X-Content-Type-Options·SPF·DMARC 6건을 'medium', Referrer-Policy·Permissions-Policy 2건을 'low'로 분류했다. 'high/critical' 등급은 사용하지 않았다. 외부 관측만으로 실제 피해 가능성을 단정하기 어렵다는 이유다.
+
+
+◇ 개선 권고 8건
+
+본지가 제안하는 실무 적용 순서는 다음과 같다. 번호는 구현 용이성과 즉각 효과를 함께 고려한 것이며 중요도 순과는 다르다.
+
+  1. HSTS 헤더 적용 (※ `preload` 지시어는 별도 검토 필요)
+  2. X-Frame-Options 및 CSP `frame-ancestors` 설정
+  3. X-Content-Type-Options: nosniff 적용
+  4. Referrer-Policy · Permissions-Policy 기본값 설정
+  5. Content-Security-Policy 단계적 도입 (Report-Only → Enforce)
+  6. 세션 쿠키 SameSite 속성 명시
+  7. /.well-known/security.txt 게시
+  8. yongin.go.kr 도메인 SPF · DMARC 적용 (※ 용인시청 관할)
+
+HSTS의 `preload` 지시어는 브라우저 벤더의 영구 HTTPS 강제 목록에 등재되는 것으로, 제거에 수개월이 소요되고 내부 HTTP 연동 시스템에 영향을 줄 수 있다. 적용 전 사전 점검이 필수다.
+
+
+◇ 기관 측 반론 대기
+
+본지는 2026년 4월 18일 오후 2시(KST) 용인시의회 사무처 대표번호(031-6193-3967)와 공식 이메일 경로로 취재 내용 확인 및 반론 요청을 발송했다. 보도 전 24시간 답변 기회를 제공했으며, 지정 시한까지 회신이 도착하지 않아 공익성을 고려해 선행 보도한다.
+
+또한 SPF·DMARC 등 상위 도메인(`yongin.go.kr`) 관련 항목은 **용인시청 정보통신과**에 별도 반론 요청을 발송했다. 두 기관은 독립 관계이므로 각각의 회신을 구분해 본 지면에 반영한다. 기관 답변이 수신되면 72시간 내 전문 게재한다. 반론·정정 요청 접수처는 경인블루저널 편집국(heisenbug0306@gmail.com)이다.
+
+
+◇ 한계와 후속 보도
+
+본 취재는 공개 응답 정보에 한정됐다. 실제 인젝션 계열 취약점 존재 여부는 본 관찰로 확인할 수 없으며, 내부 페이지·로그인 구간의 헤더 동작은 다를 수 있다. 본지는 경기도 내 타 지방의회 홈페이지에 대해서도 같은 방법론으로 점검해 'Dossier №002'로 비교 보도할 예정이다. 용인시의회의 개선 조치 여부도 후속 기사로 추적한다.
+
+공공기관 웹사이트의 보안 위생은 시민 알권리와 직결된 공공의 이익 사안이다. 본 보도는 헌법 제21조(언론의 자유), 형법 제310조(위법성 조각) 공익 보도 요건, 정보통신망법 제48조(공개 정보 수집 한정)를 준수한다.
+
+
+◇ 전체 리포트 보기
+
+본 기사의 근거가 된 상세 관찰 데이터·권고안·법적 근거 전문은 다음 경로에서 확인할 수 있다.
+
+  ▸ Dossier №001 · 전체 리포트(21페이지)
+  https://yongin-council-security-dossier.vercel.app/
+
+  ▸ 소스 저장소
+  https://github.com/yonghwan1106/yongin-council-security-dossier
+
+리포트는 응답 헤더·TLS 핸드셰이크·DNS 질의 결과 원문(verbatim)과 함께 OWASP·KISA·Mozilla 권고 기준을 인용하며, 시민·기관이 참고할 '책임 있는 공개(Responsible Disclosure)' 절차를 함께 제공한다.
+
+
+[사진 캡션]
+1. 본지가 관찰한 용인시의회 홈페이지 HTTP 응답 헤더 원문. JSESSIONID 쿠키에 Secure·HttpOnly 플래그는 적용돼 있으나 HSTS·CSP 등 다수 보안 헤더가 누락돼 있다. ⓒ 경인블루저널
+
+
+[바이라인]
+경인블루저널 박용환 기자
+
+
+---
+[SEO 메타]
+태그: 공공기관 웹 보안, 용인시의회, HSTS, CSP, X-Frame-Options, KISA 전자정부 가이드, 보안 헤더, 공익 보도
+메타 디스크립션: 용인시의회 홈페이지 응답에서 HSTS·CSP 등 6종 HTTP 보안 헤더가 관찰되지 않았다. 경인블루저널 수동 취재 결과와 OWASP·KISA 기준 개선 권고 8건.

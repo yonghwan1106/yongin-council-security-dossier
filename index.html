@@ -173,8 +173,8 @@
           <tr><td><code>/robots.txt</code></td><td>존재, 2개 경로 Disallow</td><td>정보성</td><td><span class="chip chip--info">info</span></td></tr>
           <tr><td><code>/sitemap.xml</code></td><td><strong>없음(404)</strong></td><td>보안 이슈 아님</td><td><span class="chip chip--info">info</span></td></tr>
           <tr><td><code>/.well-known/security.txt</code></td><td><strong>없음(404)</strong></td><td>RFC 9116 권고</td><td><span class="chip chip--low">low</span></td></tr>
-          <tr><td>SPF (yongin.go.kr)</td><td>관찰되지 않음</td><td>KISA 이메일 보안 권고</td><td><span class="chip chip--medium">medium</span></td></tr>
-          <tr><td>DMARC (_dmarc.yongin.go.kr)</td><td>관찰되지 않음</td><td>공공기관 사칭 방어</td><td><span class="chip chip--medium">medium</span></td></tr>
+          <tr><td>SPF (<code>yongin.go.kr</code> · 용인시청 도메인)</td><td>관찰되지 않음</td><td>KISA 이메일 보안 권고 (시청 관할)</td><td><span class="chip chip--medium">medium</span></td></tr>
+          <tr><td>DMARC (<code>_dmarc.yongin.go.kr</code> · 용인시청 도메인)</td><td>관찰되지 않음</td><td>공공기관 사칭 방어 (시청 관할)</td><td><span class="chip chip--medium">medium</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -335,6 +335,7 @@ Policy: https://council.yongin.go.kr/security-policy</pre>
       <div class="observation__letter" aria-hidden="true">F</div>
       <div class="observation__body">
         <h3>DNS / 이메일 <em>스푸핑 방어</em></h3>
+        <p class="note"><strong>관할 구분.</strong> 이하 항목 중 <code>yongin.go.kr</code> 도메인에 해당하는 조회 결과는 <strong>용인시청</strong>의 관할 사안이다. 용인시의회(council.yongin.go.kr)는 용인시청과 별개의 의결기관이며, 본지는 상위 기관 관련 결과를 참고 자료로 병기할 뿐 용인시의회의 책임으로 기술하지 않는다.</p>
         <h4>nslookup 결과</h4>
         <ul>
           <li><code>council.yongin.go.kr</code> → A <code>27.101.119.45</code></li>
@@ -346,9 +347,9 @@ Policy: https://council.yongin.go.kr/security-policy</pre>
         </ul>
         <h4>해석</h4>
         <ul>
-          <li><code>yongin.go.kr</code> 도메인에서 <strong>SPF · DMARC 레코드가 확인되지 않았다.</strong> 이는 해당 도메인을 발신자로 위조한 피싱 메일을 수신 측에서 자동 필터링하기 어려운 상태를 의미한다.</li>
-          <li><code>council.yongin.go.kr</code> 서브도메인에서 이메일 발송이 없다면 직접 영향은 낮으나, <code>yongin.go.kr</code> 조직 차원에서 <code>v=DMARC1; p=reject; rua=mailto:...</code> 엄격 정책 적용을 권한다. 용인시 정보보안 부서와 함께 판단할 사안.</li>
-          <li><strong>참고.</strong> DNS는 리졸버 캐시 · 분할 DNS 등으로 외부 관측이 내부 운영과 다를 수 있다. 본지 취재는 공개 리졸버 응답을 근거로 한다.</li>
+          <li><strong>용인시청 관할.</strong> <code>yongin.go.kr</code> 도메인에서 <strong>SPF · DMARC 레코드가 확인되지 않았다.</strong> 이는 해당 도메인을 발신자로 위조한 피싱 메일을 수신 측에서 자동 필터링하기 어려운 상태를 의미한다. 다만 이 도메인은 <strong>용인시청</strong>이 운영·관리하는 것이며, 용인시의회는 <code>council.yongin.go.kr</code> 서브도메인만 사용한다. 본 항목은 용인시의회의 책임이 아니다.</li>
+          <li><strong>용인시의회 직접 영향 낮음.</strong> <code>council.yongin.go.kr</code> 서브도메인 자체에서 이메일 발송이 없다면 용인시의회에 대한 직접 영향은 낮다. 다만 용인시청 도메인 사칭 피싱이 '시의회 공지' 형식으로 시민에게 도달할 수 있으므로, <strong>용인시청 정보통신과 차원의 SPF/DMARC 적용</strong>을 권고한다.</li>
+          <li><strong>참고.</strong> DNS는 리졸버 캐시 · 분할 DNS 등으로 외부 관측이 내부 운영과 다를 수 있다. 본 관찰은 공개 리졸버 응답을 근거로 한다.</li>
         </ul>
       </div>
     </article>
@@ -399,7 +400,7 @@ Policy: https://council.yongin.go.kr/security-policy</pre>
       <li><span class="priority__num">05</span><div class="priority__body"><strong>Content-Security-Policy 단계적 도입</strong><em>Report-Only → Enforce 순으로</em></div><span class="priority__tag">Medium</span></li>
       <li><span class="priority__num">06</span><div class="priority__body"><strong>세션 쿠키 SameSite 명시</strong><em>CSRF 심층 방어</em></div><span class="priority__tag">Low</span></li>
       <li><span class="priority__num">07</span><div class="priority__body"><strong>/.well-known/security.txt 게시</strong><em>책임 있는 공개 창구 정비</em></div><span class="priority__tag">Low</span></li>
-      <li><span class="priority__num">08</span><div class="priority__body"><strong>yongin.go.kr SPF / DMARC 적용</strong><em>상위 조직 정보보안 담당 협의</em></div><span class="priority__tag">Low</span></li>
+      <li><span class="priority__num">08</span><div class="priority__body"><strong>yongin.go.kr SPF / DMARC 적용 <small>(용인시청 관할)</small></strong><em>용인시의회 관할 밖 · 용인시청 정보통신과에 별도 전달 필요</em></div><span class="priority__tag">Low</span></li>
     </ol>
     <p class="note">본 권고는 외부 관찰 기반 일반 권고이며, 실제 적용 전 내부 영향 평가와 스테이징 검증이 필요하다.</p>
   </div>
@@ -465,6 +466,7 @@ Policy: https://council.yongin.go.kr/security-policy</pre>
       <li><strong>DNS 관측.</strong> 공개 재귀 리졸버(<code>168.126.63.1</code>, KT DNS) 응답 기준. 권한 네임서버 직접 질의와 차이가 있을 수 있다.</li>
       <li><strong>TLSv1.3.</strong> 추가 탐지가 권한 정책상 차단되어 단정하지 않는다.</li>
       <li><strong>운영 계층 미관측.</strong> 본지 취재는 최종 응답 헤더만을 근거로 한다. WAF · L7 프록시 · 내부 정책 서버 등 운영 계층 구성은 확인하지 않았다. 기관 내부가 다른 계층에서 해당 통제를 구현했을 가능성은 배제하지 않는다.</li>
+      <li><strong>관할 구분.</strong> 본 기사의 주 대상은 용인시의회(council.yongin.go.kr)다. 상위 도메인 <code>yongin.go.kr</code>은 용인시청이 운영하는 별개 도메인이며, 두 기관은 행정적으로 독립된 의결기관(의회)·집행기관(시청) 관계다. DNS·이메일 스푸핑 방어(F) 항목 중 상위 도메인 관련 결과는 용인시청 관할 사안으로, 용인시의회의 책임이 아님을 명시한다.</li>
     </ol>
   </div>
 </section>
