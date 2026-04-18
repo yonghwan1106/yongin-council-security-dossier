@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>용인시의회 홈페이지, 주요 웹 보안 헤더 응답 미관찰 — 경인블루저널</title>
+<meta name="description" content="경인블루저널 기획 취재. 용인시의회(council.yongin.go.kr) HTTP 보안 헤더 6종 응답 미관찰. 2026-04-18 공개 정보 기반 조사.">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="scroll-progress" id="progress" aria-hidden="true"></div>
+
+<!-- MASTHEAD · 기사 Hero -->
+<header class="masthead">
+  <div class="wrap masthead__inner stagger">
+    <div class="masthead__eyebrow">
+      <span>경인블루저널</span>
+      <span class="dot" aria-hidden="true"></span>
+      <span>기획 · 디지털 거버넌스</span>
+      <span class="dot" aria-hidden="true"></span>
+      <span>2026.04.18</span>
+      <span class="dot" aria-hidden="true"></span>
+      <span>공익 보도</span>
+    </div>
+
+    <div class="masthead__display">
+      <div class="masthead__headline">
+        <p class="masthead__kicker">[공공·기술] 시민 알권리 · 공공기관 웹 보안 점검</p>
+        <h1 class="masthead__title-main">용인시의회 홈페이지, 주요 웹 보안 헤더 <em>응답 미관찰</em></h1>
+        <p class="masthead__subtitle">HSTS · CSP · X-Frame-Options 등 <strong>6종 응답 미관찰</strong> … KISA 전자정부 가이드 기준 개선 권고</p>
+      </div>
+      <div class="masthead__stamp" aria-hidden="true">
+        <span>경인블루저널<br>편집 원칙<br>PUBLIC INTEREST<br>REPORT</span>
+      </div>
+    </div>
+
+    <p class="masthead__lead">
+      <strong>【리드】</strong> 용인시의회 홈페이지(<code>council.yongin.go.kr</code>)에서 브라우저 수준 심층 방어를 담당하는 핵심 HTTP 보안 헤더 다수가 응답에서 <strong>관찰되지 않았다</strong>. 본지가 2026-04-18 공개 정보만을 대상으로 수동 조사한 결과다. 전송 계층과 쿠키 기본 위생은 갖춰졌으나, <strong>HSTS·CSP·X-Frame-Options 등 6종 헤더</strong>가 외부 응답에서 관찰되지 않아 클릭재킹·다운그레이드·스크립트 주입 피해 확산 경로가 외부 관측상 차단되지 않은 상태로 남아 있다. 기관 내부 레이어에서의 구현 여부는 본 취재 범위 밖이며, 본지는 같은 날 기관에 반론 요청을 발송했다.
+    </p>
+
+    <div class="masthead__byline">
+      <span class="byline__author">경인블루저널 박용환 기자</span>
+      <span class="byline__date">입력 2026.04.18 · 최초 보도</span>
+    </div>
+
+    <div class="masthead__foot">
+      <p class="disclaimer">
+        <strong>⚠ 취재 원칙.</strong> 본 기사는 공개 정보 기반의 <strong>수동 취재</strong>다. 취약점 스캐너 실행·페이로드 주입·인증 우회 등 능동적 점검은 수행하지 않았다. 따라서 "관찰되지 않음"은 <strong>외부 응답 레이어에 보이지 않는다</strong>는 뜻이며, 기관 내부 구성까지 단정하지 않는다.<br><br>
+        <strong>반론권 보장.</strong> 본지는 2026-04-18 14:00 KST 용인시의회 사무처 대표번호(031-6193-3967) 및 공식 이메일 경로로 취재 내용 확인 및 반론 요청을 <strong>발송</strong>했다. 보도 전 <strong>24시간 답변 기회</strong>를 제공했으며, 지정 시한까지 회신이 도착하지 않아 공익성을 고려해 선행 보도한다. 기관 답변 수신 시 본 지면에 <strong>72시간 내 전문 게재</strong>한다. 반론·정정 요청 접수: <strong>heisenbug0306@gmail.com</strong> (경인블루저널 편집국).
+      </p>
+    </div>
+  </div>
+</header>
+
+<!-- TABLE OF CONTENTS -->
+<nav class="toc reveal" aria-label="문서 목차">
+  <div class="wrap">
+    <div class="toc__head">
+      <span class="toc__label">Table of Contents</span>
+      <p class="toc__sub">독자별 추천 읽기 — <em>기관 담당자</em>: 00 → 04 → 05 · <em>기술 독자</em>: 00 → 01 → 02 · <em>일반 독자</em>: 00 → 05</p>
+    </div>
+    <ol class="toc__list">
+      <li><a href="#summary"><span class="toc__num">00</span><span class="toc__text">기사 요약 · 세 줄 정리</span></a></li>
+      <li><a href="#ledger"><span class="toc__num">01</span><span class="toc__text">관찰 결과 일람표</span></a></li>
+      <li><a href="#observations"><span class="toc__num">02</span><span class="toc__text">영역별 취재 상세 (A-F)</span></a></li>
+      <li><a href="#risk"><span class="toc__num">03</span><span class="toc__text">등급 체계</span></a></li>
+      <li><a href="#recs"><span class="toc__num">04</span><span class="toc__text">개선 권고 8건</span></a></li>
+      <li><a href="#disclosure"><span class="toc__num">05</span><span class="toc__text">취재 원칙 · 신고 경로</span></a></li>
+      <li><a href="#limits"><span class="toc__num">06</span><span class="toc__text">본 취재의 한계</span></a></li>
+      <li><a href="#appendix"><span class="toc__num">AP</span><span class="toc__text">법적 근거 · 참고자료</span></a></li>
+    </ol>
+  </div>
+</nav>
+
+<!-- DOCKET -->
+<section class="docket reveal">
+  <div class="wrap">
+    <div class="docket__head">
+      <span class="docket__label">Docket № 001 — Subject</span>
+      <div class="docket__rule"></div>
+    </div>
+    <dl class="docket__list">
+      <div><dt>Object</dt><dd><code>https://council.yongin.go.kr/</code></dd></div>
+      <div><dt>Observed</dt><dd>2026-04-18 05:37 UTC (14:37 KST) 관찰 · 2026-04-18 14:00 KST 반론 요청 발송</dd></div>
+      <div><dt>취재</dt><dd>경인블루저널 박용환 기자 · heisenbug0306@gmail.com</dd></div>
+      <div><dt>Instruments</dt><dd>WebFetch · <code>curl -sSI</code> · <code>openssl s_client</code> · <code>nslookup</code> · CT 로그 조회</dd></div>
+      <div><dt>근거 법</dt><dd>헌법 제21조(언론의 자유) · 정보통신망법 제48조 · 정보통신기반 보호법 · 형법 제310조(위법성 조각)</dd></div>
+      <div><dt>Standards</dt><dd>KISA · OWASP Top 10 2021 · ASVS L1 · Mozilla · RFC 9116</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- 00 EXECUTIVE SUMMARY -->
+<section class="section reveal" id="summary">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">00</div>
+      <div>
+        <span class="section__label">기사 요약 · Executive Summary</span>
+        <h2 class="section__title">세 줄로 정리한<br>취재 결과.</h2>
+      </div>
+    </header>
+    <ol class="summary-grid">
+      <li>
+        <span class="summary__num">01</span>
+        <p>HTTPS · 인증서 · 쿠키 보안 플래그(<code>Secure</code>/<code>HttpOnly</code>) 등 <em>기본 위생</em>은 갖춰져 있다.</p>
+      </li>
+      <li>
+        <span class="summary__num">02</span>
+        <p>반면 최신 HTTP 보안 헤더(HSTS · CSP · X-Frame-Options 등)가 <em>응답에서 보이지 않아</em>, 브라우저 수준 심층 방어가 약한 편이다.</p>
+      </li>
+      <li>
+        <span class="summary__num">03</span>
+        <p><code>security.txt</code> 부재로 <em>취약점을 신고할 창구</em>가 외부에 표시돼 있지 않다. 책임 있는 공개 경로 정비를 권고한다.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- 01 LEDGER -->
+<section class="section reveal" id="ledger">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">01</div>
+      <div>
+        <span class="section__label">01 · 관찰 결과 일람표</span>
+        <h2 class="section__title">응답에서 확인된 것,<br>보이지 않은 것.</h2>
+      </div>
+    </header>
+    <div class="ledger-wrap">
+      <table class="ledger">
+        <thead>
+          <tr><th scope="col">영역</th><th scope="col">관찰 결과</th><th scope="col">권고 기준</th><th scope="col">등급</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>HTTPS 사용</td><td>200 OK (HTTPS)</td><td>충족</td><td><span class="chip chip--ok">양호</span></td></tr>
+          <tr><td>TLS 버전</td><td>TLSv1.2 협상 확인 · TLSv1.3 단정 불가</td><td>TLSv1.3 기본 협상</td><td><span class="chip chip--info">info</span></td></tr>
+          <tr><td>TLS 암호 스위트</td><td><code>ECDHE-RSA-AES256-GCM-SHA384</code> (PFS)</td><td>충족</td><td><span class="chip chip--ok">양호</span></td></tr>
+          <tr><td>인증서</td><td>GlobalSign GCC R6 AlphaSSL CA 2025 발급, 유효</td><td>충족</td><td><span class="chip chip--ok">양호</span></td></tr>
+          <tr><td>쿠키 <code>Secure</code></td><td>있음</td><td>충족</td><td><span class="chip chip--ok">양호</span></td></tr>
+          <tr><td>쿠키 <code>HttpOnly</code></td><td>있음</td><td>충족</td><td><span class="chip chip--ok">양호</span></td></tr>
+          <tr><td>쿠키 <code>SameSite</code></td><td><strong>관찰되지 않음</strong></td><td>Lax/Strict 명시</td><td><span class="chip chip--low">low</span></td></tr>
+          <tr><td><code>Strict-Transport-Security</code></td><td><strong>관찰되지 않음</strong></td><td>필수 권고</td><td><span class="chip chip--medium">medium</span></td></tr>
+          <tr><td><code>Content-Security-Policy</code></td><td><strong>관찰되지 않음</strong></td><td>필수 권고</td><td><span class="chip chip--medium">medium</span></td></tr>
+          <tr><td><code>X-Frame-Options</code> / <code>frame-ancestors</code></td><td><strong>관찰되지 않음</strong></td><td>필수 권고</td><td><span class="chip chip--medium">medium</span></td></tr>
+          <tr><td><code>X-Content-Type-Options</code></td><td><strong>관찰되지 않음</strong></td><td>ASVS L1 요건</td><td><span class="chip chip--medium">medium</span></td></tr>
+          <tr><td><code>Referrer-Policy</code></td><td><strong>관찰되지 않음</strong></td><td>권고</td><td><span class="chip chip--low">low</span></td></tr>
+          <tr><td><code>Permissions-Policy</code></td><td><strong>관찰되지 않음</strong></td><td>권고</td><td><span class="chip chip--low">low</span></td></tr>
+          <tr><td><code>Cross-Origin-*</code> 헤더군</td><td><strong>관찰되지 않음</strong></td><td>기밀 페이지 권고</td><td><span class="chip chip--info">info</span></td></tr>
+          <tr><td><code>Server</code> / <code>X-Powered-By</code></td><td>노출되지 않음</td><td>충족</td><td><span class="chip chip--ok">양호</span></td></tr>
+          <tr><td><code>/robots.txt</code></td><td>존재, 2개 경로 Disallow</td><td>정보성</td><td><span class="chip chip--info">info</span></td></tr>
+          <tr><td><code>/sitemap.xml</code></td><td><strong>없음(404)</strong></td><td>보안 이슈 아님</td><td><span class="chip chip--info">info</span></td></tr>
+          <tr><td><code>/.well-known/security.txt</code></td><td><strong>없음(404)</strong></td><td>RFC 9116 권고</td><td><span class="chip chip--low">low</span></td></tr>
+          <tr><td>SPF (yongin.go.kr)</td><td>관찰되지 않음</td><td>KISA 이메일 보안 권고</td><td><span class="chip chip--medium">medium</span></td></tr>
+          <tr><td>DMARC (_dmarc.yongin.go.kr)</td><td>관찰되지 않음</td><td>공공기관 사칭 방어</td><td><span class="chip chip--medium">medium</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">"관찰되지 않음"은 외부 응답에서 보이지 않았다는 뜻이며, 내부 구성에 따라 다를 수 있다. 특히 SPF/DMARC는 상위 도메인 정책과 메일 서비스 운영 여부에 따라 해석이 달라진다.</p>
+  </div>
+</section>
+
+<!-- 02 OBSERVATIONS -->
+<section class="section reveal" id="observations">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">02</div>
+      <div>
+        <span class="section__label">02 · 영역별 취재 상세</span>
+        <h2 class="section__title">영역별로 확인된 사실,<br>근거와 함께.</h2>
+      </div>
+    </header>
+
+    <article class="observation">
+      <div class="observation__letter" aria-hidden="true">A</div>
+      <div class="observation__body">
+        <h3>전송 계층 / <em>TLS</em></h3>
+        <h4>관찰된 핸드셰이크</h4>
+        <ul>
+          <li>인증서 주체: <code>CN=*.yongin.go.kr</code> · SAN: <code>*.yongin.go.kr</code>, <code>yongin.go.kr</code></li>
+          <li>발급자: <code>GlobalSign GCC R6 AlphaSSL CA 2025</code> → GlobalSign Root CA - R6 체인</li>
+          <li>서명: RSA-SHA256, 공개키 RSA 2048비트</li>
+          <li>유효기간: 2026-03-04 ~ 2027-04-05 (관찰 시점 기준 유효)</li>
+          <li>핸드셰이크: <code>TLSv1.2</code>, Cipher <code>ECDHE-RSA-AES256-GCM-SHA384</code>, Temp Key <code>ECDH prime256v1 256 bits</code></li>
+          <li>ALPN: <code>No ALPN negotiated</code> — HTTP/2 단정 불가 (HTTP/1.1만 관찰)</li>
+          <li>서버 IP: <code>27.101.119.45</code> (KT/Kornet 대역)</li>
+          <li><strong>HSTS 헤더 없음</strong> — HTTPS 강제는 애플리케이션 리다이렉션에 의존 추정</li>
+        </ul>
+        <h4>권고</h4>
+        <ul>
+          <li><strong>HSTS 활성화.</strong> <code>Strict-Transport-Security: max-age=31536000; includeSubDomains</code> 다운그레이드 방어 핵심. <span class="caution"><strong>※ <code>preload</code> 지시어는 별도 검토 필요</strong> — hstspreload.org 등재 시 모든 <code>*.yongin.go.kr</code> 서브도메인이 브라우저 벤더 목록에 영구 HTTPS 강제되며 제거 절차는 수개월이 소요된다. 내부 HTTP 연동 시스템 사전 점검 후 결정할 것.</span></li>
+          <li><strong>TLSv1.3 활성화 확인.</strong> 외부 관찰로 단정 불가. 내부 구성 점검 권고.</li>
+          <li><strong>와일드카드 인증서 정책 재검토.</strong> <code>*.yongin.go.kr</code> 공용 사용은 한 서브도메인 키 유출이 전체 서비스로 번질 수 있다. 고위험 서비스 분리 검토.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="observation">
+      <div class="observation__letter" aria-hidden="true">B</div>
+      <div class="observation__body">
+        <h3>HTTP <em>보안 헤더</em></h3>
+        <h4>응답 원문 (verbatim)</h4>
+        <pre class="evidence" data-label="council.yongin.go.kr · response · 2026-04-18 05:37 UTC">HTTP/1.1 200
+Set-Cookie: JSESSIONID=&lt;redacted&gt;; Path=/; Secure; HttpOnly
+Content-Type: text/html;charset=UTF-8
+Content-Language: ko-KR
+Transfer-Encoding: chunked
+Date: Sat, 18 Apr 2026 05:37:21 GMT</pre>
+
+        <h4>응답에 없었던 헤더</h4>
+        <ul>
+          <li><code>Strict-Transport-Security</code></li>
+          <li><code>Content-Security-Policy</code></li>
+          <li><code>X-Frame-Options</code> (및 CSP <code>frame-ancestors</code>)</li>
+          <li><code>X-Content-Type-Options</code></li>
+          <li><code>Referrer-Policy</code>, <code>Permissions-Policy</code></li>
+          <li><code>Cross-Origin-Opener/Embedder/Resource-Policy</code></li>
+          <li><code>Server</code>, <code>X-Powered-By</code> — 노출되지 않음 <strong>(양호: 버전 지문 미공개)</strong></li>
+        </ul>
+
+        <h4>해석</h4>
+        <ul>
+          <li><strong>HSTS 부재.</strong> 초기 HTTP 접근 시 공용 Wi-Fi 등 중간자 다운그레이드·스트리핑 공격 경로가 이론적으로 존재.</li>
+          <li><strong>CSP 부재.</strong> 혹여 XSS가 존재할 경우, 브라우저 측 완화책이 비어 있어 피해 확산이 빠르다.</li>
+          <li><strong>X-Frame-Options / frame-ancestors 부재.</strong> 용인시의회 페이지를 타 사이트에서 <code>&lt;iframe&gt;</code>으로 임베드해 클릭재킹 수행 가능.</li>
+          <li><strong>X-Content-Type-Options 부재.</strong> 업로드 / 정적 파일 구간에서 MIME 스니핑 공격 여지.</li>
+          <li><strong>Referrer-Policy 부재.</strong> 외부 링크 이동 시 내부 URL/쿼리가 전체 유출될 수 있음.</li>
+          <li><strong>Permissions-Policy 부재.</strong> 의도치 않은 카메라·마이크·지오로케이션 권한 경로.</li>
+        </ul>
+
+        <h4>권고 (예시값)</h4>
+        <pre class="evidence" data-label="recommended response headers">Strict-Transport-Security: max-age=31536000; includeSubDomains
+Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
+                         script-src 'self'; frame-ancestors 'self'
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=()</pre>
+        <p class="note">CSP는 인라인 스크립트 · 3rd-party 위젯 사용 현황에 따라 <code>Report-Only</code> → <code>Enforce</code>로 점진적 조정. 실 배포 전 스테이징 검증 권고.</p>
+      </div>
+    </article>
+
+    <article class="observation">
+      <div class="observation__letter" aria-hidden="true">C</div>
+      <div class="observation__body">
+        <h3>쿠키 <em>위생</em></h3>
+        <h4>관찰</h4>
+        <pre class="evidence" data-label="Set-Cookie">Set-Cookie: JSESSIONID=...; Path=/; Secure; HttpOnly</pre>
+        <ul>
+          <li><code>Secure</code>, <code>HttpOnly</code> — <strong>있음 (양호)</strong></li>
+          <li><code>SameSite</code> — <strong>없음</strong></li>
+        </ul>
+        <h4>해석</h4>
+        <ul>
+          <li><code>SameSite</code> 미지정은 브라우저 기본값 의존. 최신 Chromium은 <code>Lax</code> 기본이나, 구형 클라이언트에서 동작이 달라 CSRF 심층 방어가 불안정.</li>
+          <li><code>JSESSIONID</code>라는 쿠키 이름은 Java Servlet 컨테이너(전자정부 표준프레임워크 / Tomcat 등) 기반 추정 단서일 뿐, 취약점 단정 근거는 아님.</li>
+        </ul>
+        <h4>권고</h4>
+        <ul>
+          <li>세션 쿠키에 <code>SameSite=Lax</code> (워크플로에 따라 <code>Strict</code>) 명시</li>
+          <li>로그인 구간은 짧은 TTL 토큰 + 세션 고정(fixation) 방지 회전 구성 점검(내부 검토)</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="observation">
+      <div class="observation__letter" aria-hidden="true">D</div>
+      <div class="observation__body">
+        <h3>공개 <em>파일 · 경로</em></h3>
+        <h4>관찰</h4>
+        <pre class="evidence" data-label="/robots.txt · 200">User-agent: *
+Disallow:/kr/open/bbsRequest.do
+Disallow:/kr/open/search.do</pre>
+        <ul>
+          <li><code>/sitemap.xml</code> → <strong>404</strong></li>
+          <li><code>/.well-known/security.txt</code> → <strong>404</strong></li>
+        </ul>
+        <h4>해석</h4>
+        <ul>
+          <li><code>robots.txt</code>의 Disallow 경로는 크롤링 예외 선언이지 <strong>접근 제어 경계가 아니다</strong>. 공격자는 이 경로 존재 자체를 단서로 활용할 수 있다. 실제 접근 제어는 서버 측 권한 검증으로만 보장된다(본지 취재에서는 해당 경로에 접근하지 않음).</li>
+          <li><code>security.txt</code> 부재 — 외부에서 우연히 취약점을 발견한 이용자가 기관 담당자를 찾기 어렵다. 대안은 KISA 보호나라 신고.</li>
+        </ul>
+        <h4>권고 (security.txt 예시)</h4>
+        <pre class="evidence" data-label="/.well-known/security.txt"># RFC 9116
+Contact: mailto:&lt;담당부서 이메일&gt;
+Expires: 2027-04-18T00:00:00+09:00
+Preferred-Languages: ko, en
+Policy: https://council.yongin.go.kr/security-policy</pre>
+      </div>
+    </article>
+
+    <article class="observation">
+      <div class="observation__letter" aria-hidden="true">E</div>
+      <div class="observation__body">
+        <h3>클라이언트 사이드 <em>표면</em></h3>
+        <h4>관찰 (HTML 소스 수준)</h4>
+        <ul>
+          <li><code>&lt;meta charset="utf-8"&gt;</code>, <code>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</code></li>
+          <li>푸터: <code>COPYRIGHT © 2021 YONGIN CITY COUNCIL</code>, 주소 · 전화 노출 — <strong>기관 공개정보이므로 문제 없음</strong></li>
+          <li>외부 도메인 리소스: <code>facebook.com/yicouncil</code>, <code>youtube.com/channel/...</code>, <code>twitter.com/yicouncil</code>, <code>clive.yongin.go.kr</code>(생중계), <code>elis.go.kr</code>(법령정보)</li>
+          <li>웹접근성 인증 배지 → <code>webwatch.or.kr</code></li>
+          <li>프레임워크 단서: 한국 전자정부 표준프레임워크(egovframe) 패턴으로 추정(단정 아님)</li>
+          <li>SRI(<code>integrity=</code>) 속성 적용 여부는 관찰 스니펫 범위에서 확인 어려움 — 전체 자산 단위 확인 필요</li>
+        </ul>
+        <h4>해석 · 권고</h4>
+        <ul>
+          <li>외부 트래커 스크립트는 이 세션에서 뚜렷하게 보이지 않았으나, 로딩되는 모든 외부 리소스에 <strong>SRI + CSP <code>script-src</code> 화이트리스트</strong> 적용 점검 권고.</li>
+          <li><code>clive.yongin.go.kr</code>(생중계), <code>elis.go.kr</code> 등 연관 시스템은 본 기사 범위 밖이다. 별도 취재가 필요할 수 있다.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="observation">
+      <div class="observation__letter" aria-hidden="true">F</div>
+      <div class="observation__body">
+        <h3>DNS / 이메일 <em>스푸핑 방어</em></h3>
+        <h4>nslookup 결과</h4>
+        <ul>
+          <li><code>council.yongin.go.kr</code> → A <code>27.101.119.45</code></li>
+          <li><code>yongin.go.kr</code> MX 조회: MX 레코드 직접 응답 없이 권한 NS(<code>ns.gcc.go.kr</code>)만 반환</li>
+          <li><code>yongin.go.kr</code> TXT: <code>"_globalsign-domain-verification=..."</code> — <strong>GlobalSign 인증서 발급 소유 검증 값 · SPF가 아님</strong></li>
+          <li><code>_dmarc.yongin.go.kr</code> TXT: 별도 DMARC 레코드 관찰되지 않음 (SOA/NS 정보만 반환)</li>
+          <li><code>_dmarc.council.yongin.go.kr</code>: Non-existent domain</li>
+          <li>권한 NS: <code>ns.gcc.go.kr</code> (정부 통합 DNS) — 정상</li>
+        </ul>
+        <h4>해석</h4>
+        <ul>
+          <li><code>yongin.go.kr</code> 도메인에서 <strong>SPF · DMARC 레코드가 확인되지 않았다.</strong> 이는 해당 도메인을 발신자로 위조한 피싱 메일을 수신 측에서 자동 필터링하기 어려운 상태를 의미한다.</li>
+          <li><code>council.yongin.go.kr</code> 서브도메인에서 이메일 발송이 없다면 직접 영향은 낮으나, <code>yongin.go.kr</code> 조직 차원에서 <code>v=DMARC1; p=reject; rua=mailto:...</code> 엄격 정책 적용을 권한다. 용인시 정보보안 부서와 함께 판단할 사안.</li>
+          <li><strong>참고.</strong> DNS는 리졸버 캐시 · 분할 DNS 등으로 외부 관측이 내부 운영과 다를 수 있다. 본지 취재는 공개 리졸버 응답을 근거로 한다.</li>
+        </ul>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- 03 RISK SCHEME -->
+<section class="section reveal" id="risk">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">03</div>
+      <div>
+        <span class="section__label">03 · 등급 체계</span>
+        <h2 class="section__title">본 기사의<br>위험도 분류 기준.</h2>
+      </div>
+    </header>
+    <table class="risk-scheme">
+      <thead>
+        <tr><th style="width:22%">등급</th><th>의미</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="chip chip--info">informational</span></td><td>관찰된 사실 또는 양호 항목. 조치 불필요 혹은 유지 권장.</td></tr>
+        <tr><td><span class="chip chip--low">low</span></td><td>현행 기준 대비 소폭 개선 필요. 단독으로는 실질 피해 가능성 낮음.</td></tr>
+        <tr><td><span class="chip chip--medium">medium</span></td><td>일반적인 보안 권고 기준 미충족. <strong>외부 관찰만으로는 실제 피해 단정 불가</strong>이나 심층 방어 강화 필요.</td></tr>
+        <tr><td>high / critical</td><td>본 기사에서는 사용하지 않음. 능동 점검 없이 단정 불가.</td></tr>
+      </tbody>
+    </table>
+    <p class="note"><strong>분류 근거.</strong> 본 기사의 <strong>medium / low</strong> 분기는 <strong>OWASP Secure Headers Project</strong>의 "Headers That Should Be Set" 기준을 따른다. 피해 확산 경로를 차단하는 헤더(HSTS · CSP · X-Frame-Options), ASVS L1 명시 요건(X-Content-Type-Options), 공공기관 피싱 방어 기준(SPF · DMARC · KISA 이메일 보안 가이드)을 <em>medium</em>으로, 정보 유출 억제 헤더(Referrer-Policy · Permissions-Policy)를 <em>low</em>로 구분한다.</p>
+  </div>
+</section>
+
+<!-- 04 RECOMMENDATIONS -->
+<section class="section reveal" id="recs">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">04</div>
+      <div>
+        <span class="section__label">04 · 개선 권고</span>
+        <h2 class="section__title">여덟 가지<br>권고 조치.</h2>
+      </div>
+    </header>
+    <p class="section__intro">번호 순은 <strong>구현 용이성과 즉각 효과를 함께 고려한 실무 적용 순서</strong>이며 <em>중요도 순과 다를 수 있다</em>. 동일 등급 내 순서는 임의다. CSP는 준비 완료 시점에 최우선으로 당겨 처리할 것.</p>
+    <ol class="priority-list">
+      <li><span class="priority__num">01</span><div class="priority__body"><strong>HSTS 헤더 적용</strong><em>다운그레이드 공격 방어 · 비용 낮고 효과 큼</em></div><span class="priority__tag">Medium</span></li>
+      <li><span class="priority__num">02</span><div class="priority__body"><strong>X-Frame-Options / frame-ancestors</strong><em>클릭재킹 방어</em></div><span class="priority__tag">Medium</span></li>
+      <li><span class="priority__num">03</span><div class="priority__body"><strong>X-Content-Type-Options: nosniff</strong><em>MIME 스니핑 방어</em></div><span class="priority__tag">Low</span></li>
+      <li><span class="priority__num">04</span><div class="priority__body"><strong>Referrer-Policy / Permissions-Policy 기본값</strong><em>리퍼러·권한 경로 통제</em></div><span class="priority__tag">Low</span></li>
+      <li><span class="priority__num">05</span><div class="priority__body"><strong>Content-Security-Policy 단계적 도입</strong><em>Report-Only → Enforce 순으로</em></div><span class="priority__tag">Medium</span></li>
+      <li><span class="priority__num">06</span><div class="priority__body"><strong>세션 쿠키 SameSite 명시</strong><em>CSRF 심층 방어</em></div><span class="priority__tag">Low</span></li>
+      <li><span class="priority__num">07</span><div class="priority__body"><strong>/.well-known/security.txt 게시</strong><em>책임 있는 공개 창구 정비</em></div><span class="priority__tag">Low</span></li>
+      <li><span class="priority__num">08</span><div class="priority__body"><strong>yongin.go.kr SPF / DMARC 적용</strong><em>상위 조직 정보보안 담당 협의</em></div><span class="priority__tag">Low</span></li>
+    </ol>
+    <p class="note">본 권고는 외부 관찰 기반 일반 권고이며, 실제 적용 전 내부 영향 평가와 스테이징 검증이 필요하다.</p>
+  </div>
+</section>
+
+<!-- 05 RESPONSIBLE DISCLOSURE -->
+<section class="section reveal" id="disclosure">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">05</div>
+      <div>
+        <span class="section__label">05 · 취재·보도 원칙 및 신고 경로</span>
+        <h2 class="section__title">본지의 취재 원칙 ·<br>시민의 신고 경로.</h2>
+      </div>
+    </header>
+    <aside class="timeline" aria-label="취재·보도 원칙">
+      <div class="timeline__label">Editorial Principles · 본지 취재 원칙</div>
+      <h3 class="timeline__title">경인블루저널 공익 보도 원칙</h3>
+      <ol class="timeline__steps">
+        <li><span class="timeline__step">01</span><div><strong>공익 보도.</strong> 공공기관 웹사이트의 보안 위생은 시민 알권리와 직결된 공공의 이익 사안이다.</div></li>
+        <li><span class="timeline__step">02</span><div><strong>수동 취재.</strong> 본 기사는 공개 정보만을 조회하는 비침투적 취재에 한하며, 정보통신망법 제48조를 준수한다.</div></li>
+        <li><span class="timeline__step">03</span><div><strong>반론권 보장.</strong> 본지는 보도 전 기관에 <strong>최소 24시간 답변 기회</strong>를 제공하고, 접수한 반론·사실 확인 요청은 <strong>72시간 내 본 지면에 반영</strong>한다. 요청 접수처: <code>heisenbug0306@gmail.com</code>.</div></li>
+        <li><span class="timeline__step">04</span><div><strong>지속 모니터링.</strong> 개선 조치 여부를 <em>Dossier №002</em> 후속 기사로 추적 보도한다.</div></li>
+      </ol>
+    </aside>
+    <p class="section__intro">일반 독자가 본 기사 이상의 의심 사항을 <strong>우연히 발견</strong>한 경우, <strong>직접 접근해 검증하지 말고</strong> 아래 경로로 신고하는 것이 한국 법체계상 안전하다.</p>
+    <ol class="channels">
+      <li>
+        <h3>KISA 보호나라 취약점 신고센터</h3>
+        <p>웹 — <a href="https://www.boho.or.kr" target="_blank" rel="noopener noreferrer">boho.or.kr</a>. PoC는 <strong>필요한 최소 범위</strong>만 기술하고, 실제 악용 흔적이 남지 않도록 서술한다.</p>
+      </li>
+      <li>
+        <h3>민 · 관 합동 취약점 신고포상제</h3>
+        <p>KISA 주관. 공공기관 대상 취약점도 접수 가능.</p>
+      </li>
+      <li>
+        <h3>용인시의회 사무처 직접 연락</h3>
+        <p>공식 홈페이지 푸터의 대표번호 <code>031-6193-3967</code> (경기도 용인시 처인구 중부대로 1199)로 연결 후 "정보보안 담당 부서" 안내 요청. 조직 차원 이슈(SPF/DMARC 등 <code>yongin.go.kr</code> 도메인 레벨)는 용인시청 정보통신과에도 별도 문의.</p>
+      </li>
+      <li>
+        <h3>공식 security.txt 부재 관련</h3>
+        <p>본 기사의 제안대로 기관이 <code>/.well-known/security.txt</code>를 게시하면, 향후 외부 신고 경로가 표준화된다.</p>
+      </li>
+    </ol>
+    <p class="note">신고 전에 취약점을 재현하기 위한 <strong>추가 스캔 · 페이로드 주입</strong>은 법적 위험이 있으므로 수행하지 않는다.</p>
+  </div>
+</section>
+
+<!-- 06 LIMITATIONS -->
+<section class="section reveal" id="limits">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">06</div>
+      <div>
+        <span class="section__label">06 · 본 취재의 한계</span>
+        <h2 class="section__title">본지 취재가<br>말하지 못한 것.</h2>
+      </div>
+    </header>
+    <ol class="limits">
+      <li><strong>능동 점검 없음.</strong> 실제 인젝션 계열(SQLi / XSS / SSRF 등) 취약점 존재 여부는 본지 취재로 확인 불가.</li>
+      <li><strong>단일 페이지 범위.</strong> 관찰은 <code>/</code> 메인 페이지와 소수 공개 파일에 한정. 내부 페이지 · 로그인 구간의 헤더 · 쿠키 동작은 다를 수 있다.</li>
+      <li><strong>시점 의존.</strong> 2026-04-18 관찰 시점의 응답만을 근거로 한다. 이후 변경은 반영되지 않는다.</li>
+      <li><strong>DNS 관측.</strong> 공개 재귀 리졸버(<code>168.126.63.1</code>, KT DNS) 응답 기준. 권한 네임서버 직접 질의와 차이가 있을 수 있다.</li>
+      <li><strong>TLSv1.3.</strong> 추가 탐지가 권한 정책상 차단되어 단정하지 않는다.</li>
+      <li><strong>운영 계층 미관측.</strong> 본지 취재는 최종 응답 헤더만을 근거로 한다. WAF · L7 프록시 · 내부 정책 서버 등 운영 계층 구성은 확인하지 않았다. 기관 내부가 다른 계층에서 해당 통제를 구현했을 가능성은 배제하지 않는다.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- APPENDIX -->
+<section class="section reveal" id="appendix">
+  <div class="wrap">
+    <header class="section__head">
+      <div class="section__num">AP</div>
+      <div>
+        <span class="section__label">AP · 근거 및 참고자료</span>
+        <h2 class="section__title">법적 근거와 참고 문헌.</h2>
+      </div>
+    </header>
+
+    <article class="appendix-block">
+      <div class="appendix__label">Appendix A</div>
+      <h3>법적 근거 요약</h3>
+      <ul>
+        <li><strong>「정보통신망 이용촉진 및 정보보호 등에 관한 법률」 제48조.</strong> 정당한 접근권한 없이 정보통신망에 침입하거나 정보를 훼손 · 변경 · 위조하는 행위 금지. 위반 시 형사처벌.</li>
+        <li><strong>「정보통신기반 보호법」.</strong> 주요정보통신기반시설에 대한 보호 의무 및 취약점 분석 · 평가 체계.</li>
+        <li><strong>「개인정보 보호법」 제29조.</strong> 개인정보 처리자의 안전조치 의무 — 기술적 · 관리적 보호조치.</li>
+      </ul>
+    </article>
+
+    <article class="appendix-block">
+      <div class="appendix__label">Appendix B</div>
+      <h3>참고 링크</h3>
+      <ul>
+        <li>KISA 보호나라 — <a href="https://www.boho.or.kr" target="_blank" rel="noopener noreferrer">boho.or.kr</a></li>
+        <li>OWASP Top 10 (2021) — <a href="https://owasp.org/Top10/" target="_blank" rel="noopener noreferrer">owasp.org/Top10</a></li>
+        <li>OWASP Secure Headers Project — <a href="https://owasp.org/www-project-secure-headers/" target="_blank" rel="noopener noreferrer">owasp.org/www-project-secure-headers</a></li>
+        <li>Mozilla Web Security Guidelines — <a href="https://infosec.mozilla.org/guidelines/web_security" target="_blank" rel="noopener noreferrer">infosec.mozilla.org/guidelines/web_security</a></li>
+        <li>RFC 9116 (security.txt) — <a href="https://www.rfc-editor.org/rfc/rfc9116" target="_blank" rel="noopener noreferrer">rfc-editor.org/rfc/rfc9116</a></li>
+        <li>행정안전부 「전자정부 웹사이트 보안 가이드라인」 — 공공기관 웹 보안 위생이 행정 지침 준수 사안임을 뒷받침</li>
+        <li>KISA 「공공기관 개인정보 침해 현황 통계」 — 공공기관 웹 보안 취약이 실질 시민 피해로 이어진 사례 집적</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<!-- COLOPHON -->
+<footer class="colophon">
+  <div class="wrap">
+    <div class="colophon__rule"></div>
+    <p class="byline-block"><strong>경인블루저널 박용환 기자</strong></p>
+    <p>본 기사는 경인블루저널이 2026-04-18<br>
+    공개 정보를 취재해 작성한 공익 보도다.<br>
+    기관 반론 · 사실 확인 요청 접수: <strong>heisenbug0306@gmail.com</strong><br>
+    후속 기사(<em>Dossier №002</em>)로 조치 경과를 추적 보도한다.</p>
+    <div class="colophon__end">— 경인블루저널 · Dossier №001 —</div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

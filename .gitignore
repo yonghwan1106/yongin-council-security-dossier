@@ -1,0 +1,17 @@
+# OS
+Thumbs.db
+.DS_Store
+
+# Temp preview renders (PDF → PNG)
+_sample_p*.png
+_s_p*.png
+_v*_p*.png
+_render-snapshot.png
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# OMC state
+.omc/
