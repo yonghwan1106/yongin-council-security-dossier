@@ -8,6 +8,14 @@ HSTS · CSP · X-Frame-Options 등 6종 응답 미관찰 · KISA 전자정부 �
 
 ---
 
+## 🔗 라이브 기사
+
+**https://yongin-council-security-dossier.vercel.app/**
+
+Vercel 배포 · 최신 `main` 브랜치 자동 반영
+
+---
+
 ## 개요
 
 본 리포트는 경인블루저널이 `council.yongin.go.kr`을 대상으로 수행한 **공개 정보 기반 수동 취재**의 기록이다. 취약점 스캐너 실행 · 페이로드 주입 · 인증 우회 등 능동적 점검은 수행하지 않았다.
